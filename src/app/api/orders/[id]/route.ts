@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(
   request: Request,
@@ -10,7 +10,7 @@ export async function GET(
 
     // We can fetch by UUID (id) or by public_id
     // To handle both securely, we'll try to find by public_id first, since it's used in the URL
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .select(`
         *,

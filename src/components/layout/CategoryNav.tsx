@@ -1,26 +1,38 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import {
+  Cake,
+  Gift,
+  Cookie,
+  UtensilsCrossed,
+  Coffee,
+  CakeSlice,
+  Award,
+  Sparkles,
+  PartyPopper,
+} from "lucide-react";
 
 const CATEGORIES = [
-  { id: "bolos-de-festa", name: "🎂 Bolos de Festa" },
-  { id: "kits-festa", name: "🎁 Kits Festa" },
-  { id: "doces", name: "🍬 Doces" },
-  { id: "salgados", name: "🥐 Salgados" },
-  { id: "bolos-caseiros", name: "🍰 Bolos Caseiros" },
-  { id: "tortas", name: "🥧 Tortas" },
-  { id: "pudim", name: "🍮 Pudim" },
-  { id: "travessas", name: "✨ Travessas" },
-  { id: "descartaveis", name: "🎉 Complete sua festa" },
+  { id: "kits-festa-destaque", name: "Kits em Destaque", icon: Sparkles },
+  { id: "bolos-de-festa", name: "Bolos de Festa", icon: Cake },
+  { id: "doces", name: "Doces", icon: Cookie },
+  { id: "salgados", name: "Salgados", icon: UtensilsCrossed },
+  { id: "kits-festa", name: "Kits & Caixas", icon: Gift },
+  { id: "bolos-caseiros", name: "Bolos Caseiros", icon: Coffee },
+  { id: "tortas", name: "Tortas", icon: CakeSlice },
+  { id: "pudim", name: "Pudim", icon: Award },
+  { id: "travessas", name: "Travessas", icon: Sparkles },
+  { id: "descartaveis", name: "Complete sua Festa", icon: PartyPopper },
 ];
 
 export function CategoryNav() {
-  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
+  const [activeCategory, setActiveCategory] = useState<string>("kits-festa-destaque");
   const scrollContainerRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 160;
+      const scrollPosition = window.scrollY + 180;
 
       for (let i = CATEGORIES.length - 1; i >= 0; i--) {
         const section = document.getElementById(CATEGORIES[i].id);
@@ -42,39 +54,50 @@ export function CategoryNav() {
     setActiveCategory(id);
     const element = document.getElementById(id);
     if (element) {
-      const offset = 140;
+      const offset = 145;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
 
       window.scrollTo({
         top: offsetPosition,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
   };
 
   return (
-    <nav className="sticky top-16 md:top-20 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[rgba(1,29,77,0.14)] shadow-xs">
-      <div className="container mx-auto max-w-6xl">
-        <ul 
+    <nav 
+      aria-label="Navegação por categorias"
+      className="sticky top-[74px] md:top-[80px] z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E4E7EC] shadow-[0_1px_2px_rgba(16,24,40,0.03)]"
+    >
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
+        <ul
           ref={scrollContainerRef}
-          className="flex overflow-x-auto scrollbar-hide px-4 py-2.5 gap-2 items-center"
+          className="flex overflow-x-auto scrollbar-hide py-3 gap-2 sm:gap-2.5 items-center md:justify-center"
         >
           {CATEGORIES.map((category) => {
+            const Icon = category.icon;
             const isActive = activeCategory === category.id;
             return (
-              <li key={category.id} className="whitespace-nowrap flex-shrink-0">
+              <li key={category.id} className="whitespace-nowrap shrink-0">
                 <button
+                  type="button"
                   onClick={() => handleCategoryClick(category.id)}
-                  className={`relative px-3.5 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
+                  className={`relative h-[42px] px-4 rounded-full text-[13px] md:text-[14px] font-medium transition-all duration-200 border flex items-center gap-2 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06295C] ${
                     isActive
-                      ? "bg-[#011D4D] text-white border-[#011D4D] shadow-xs font-semibold"
-                      : "bg-white text-[#011D4D] border-[rgba(1,29,77,0.15)] hover:bg-[#F0F4FA] hover:border-[#011D4D]/30"
+                      ? "bg-[#06295C] text-white border-[#06295C] shadow-xs font-semibold"
+                      : "bg-white text-[#101828] border-[#E4E7EC] hover:bg-[#F8F9FB] hover:border-[#D0D5DD] hover:text-[#06295C]"
                   }`}
                 >
+                  <Icon
+                    size={16}
+                    className={`transition-colors shrink-0 ${
+                      isActive ? "text-[#E9C84A]" : "text-[#667085]"
+                    }`}
+                  />
                   <span>{category.name}</span>
                   {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FBF59C] inline-block ml-0.5 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E9C84A] shrink-0" />
                   )}
                 </button>
               </li>

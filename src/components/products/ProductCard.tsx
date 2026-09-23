@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Cake, Sparkles, ChevronRight } from "lucide-react";
+import { Cake, ArrowRight, Sparkles, Users } from "lucide-react";
 import { Product } from "@/types";
 
 interface ProductCardProps {
@@ -22,43 +22,72 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
     }).format(price);
   };
 
+  // Badge extraction based only on real data
+  const getBadgeText = () => {
+    if (isKitProduct && product.shortDescription) {
+      const match = product.shortDescription.match(/serve\s+(até\s+)?(\d+\s*a\s*\d+|\d+)\s*pessoas/i);
+      if (match) {
+        return `Serve até ${match[2]} pessoas`;
+      }
+      if (product.name.toLowerCase().includes("mimo")) return "Presente";
+      if (product.name.toLowerCase().includes("escolar")) return "Individual";
+    }
+    if (product.weight) {
+      return product.weight;
+    }
+    return null;
+  };
+
+  const badgeText = getBadgeText();
+
   const getPriceDisplay = () => {
     if (product.priceType === "starting_at") {
       return (
         <div className="flex flex-col">
-          <span className="text-[11px] text-[#526070] font-semibold uppercase tracking-wider">A partir de</span>
-          <span className="text-lg md:text-xl font-extrabold text-[#011D4D] tracking-tight">
-            {formatPrice(product.basePrice)}
-            <span className="text-xs font-medium text-[#526070] ml-1">/{product.unit || 'kg'}</span>
+          <span className="text-[11px] text-[#667085] font-medium uppercase tracking-wider">
+            A partir de
           </span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-[18px] sm:text-[20px] font-bold text-[#06295C] tracking-tight">
+              {formatPrice(product.basePrice)}
+            </span>
+            <span className="text-[12px] text-[#667085] font-normal">
+              /{product.unit || "kg"}
+            </span>
+          </div>
         </div>
       );
     }
-    
+
     if (product.priceType === "per_unit" && product.categoryId === "doces") {
       const hundredPrice = product.slug === "doces-especiais" ? "R$ 145,00" : "R$ 116,00";
       return (
         <div className="flex flex-col">
-          <span className="text-lg md:text-xl font-extrabold text-[#011D4D] tracking-tight">
-            {formatPrice(product.basePrice)}
-            <span className="text-xs font-medium text-[#526070] ml-1">/uni</span>
-          </span>
-          <span className="text-[11px] font-bold text-[#011D4D] bg-[#F7F8FA] px-2 py-0.5 rounded-md inline-block mt-0.5 border border-[#011D4D]/10">
-            {hundredPrice} <span className="font-normal text-[#526070]">/100 uni</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-[18px] sm:text-[20px] font-bold text-[#06295C] tracking-tight">
+              {formatPrice(product.basePrice)}
+            </span>
+            <span className="text-[12px] text-[#667085] font-normal">/unid</span>
+          </div>
+          <span className="text-[11px] font-medium text-[#667085] mt-0.5">
+            {hundredPrice} <span className="text-[#98A2B3]">/100 unid</span>
           </span>
         </div>
       );
     }
 
     if (product.priceType === "per_unit" && product.categoryId === "salgados") {
+      const bulkNote = product.slug === "salgados-congelados" ? "R$ 27,00 /25 unid" : "R$ 58,00 /50 unid";
       return (
         <div className="flex flex-col">
-          <span className="text-lg md:text-xl font-extrabold text-[#011D4D] tracking-tight">
-            {formatPrice(product.basePrice)}
-            <span className="text-xs font-medium text-[#526070] ml-1">/uni</span>
-          </span>
-          <span className="text-[11px] font-bold text-[#011D4D] bg-[#F7F8FA] px-2 py-0.5 rounded-md inline-block mt-0.5 border border-[#011D4D]/10">
-            {product.slug === "salgados-congelados" ? "R$ 27,00 /25 uni" : "R$ 58,00 /50 uni"}
+          <div className="flex items-baseline gap-1">
+            <span className="text-[18px] sm:text-[20px] font-bold text-[#06295C] tracking-tight">
+              {formatPrice(product.basePrice)}
+            </span>
+            <span className="text-[12px] text-[#667085] font-normal">/unid</span>
+          </div>
+          <span className="text-[11px] font-medium text-[#667085] mt-0.5">
+            {bulkNote}
           </span>
         </div>
       );
@@ -66,101 +95,98 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
 
     return (
       <div className="flex flex-col">
-        <span className="text-lg md:text-xl font-extrabold text-[#011D4D] tracking-tight">
-          {formatPrice(product.basePrice)}
-        </span>
-        {product.unit && (
-          <span className="text-xs font-medium text-[#526070]">
-            por {product.unit}
+        <div className="flex items-baseline gap-1">
+          <span className="text-[18px] sm:text-[20px] font-bold text-[#06295C] tracking-tight">
+            {formatPrice(product.basePrice)}
           </span>
-        )}
+          {product.unit && (
+            <span className="text-[12px] text-[#667085] font-normal">
+              /{product.unit}
+            </span>
+          )}
+        </div>
       </div>
     );
   };
 
   const getButtonText = () => {
-    if (isCakeProduct) return "Montar meu bolo";
+    if (isCakeProduct) return "Personalizar bolo";
     if (isBulkProduct) return "Escolher sabores";
     return "Ver detalhes";
   };
 
   return (
-    <div 
+    <article
       onClick={() => onClick(product)}
-      className="group relative flex flex-col bg-white rounded-[22px] overflow-hidden border-2 border-[#011D4D]/15 hover:border-[#011D4D] ring-1 ring-inset ring-[#011D4D]/5 hover:ring-[#E8D777]/40 shadow-[0_4px_20px_rgba(1,29,77,0.06)] hover:shadow-[0_16px_36px_rgba(1,29,77,0.14)] hover:-translate-y-1.5 transition-all duration-300 cursor-pointer"
+      className="group relative flex flex-col bg-white rounded-[20px] border border-[#E4E7EC] hover:border-[#D0D5DD] overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(16,24,40,0.07)] cursor-pointer select-none"
     >
-      {/* Moldura Accent Bar at Top */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-[#011D4D] via-[#E8D777] to-[#011D4D] opacity-90 group-hover:opacity-100 transition-opacity" />
+      {/* Image Container */}
+      <div className="relative w-full aspect-[4/3] bg-[#F8F9FB] overflow-hidden border-b border-[#E4E7EC]">
+        {badgeText && (
+          <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-xs text-[#06295C] text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-2xs border border-[#E4E7EC] flex items-center gap-1.5">
+            {isKitProduct ? (
+              <Users size={12} className="text-[#06295C]" />
+            ) : (
+              <Sparkles size={12} className="text-[#E9C84A]" />
+            )}
+            <span>{badgeText}</span>
+          </div>
+        )}
 
-      {/* Kit Badge or Special Tag */}
-      {isKitProduct && (
-        <div className="absolute top-4 left-3 z-10 bg-[#011D4D] text-[#FBF59C] text-[10px] font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1 border border-[#E8D777]/40">
-          <Sparkles size={11} className="text-[#E8D777]" />
-          {product.shortDescription?.includes("pessoas") 
-            ? product.shortDescription.split('.')[0]
-            : "Mais praticidade"}
-        </div>
-      )}
-
-      {/* Image Container with Zoom effect */}
-      <div className="relative w-full aspect-square bg-[#F7F8FA] overflow-hidden border-b border-[#011D4D]/10">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
-            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover group-hover:scale-[1.03] transition-transform duration-300 ease-out"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-[#011D4D]/30 p-4 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-[#667085]/40 p-4 text-center">
             <Cake className="w-10 h-10 mb-2 stroke-[1.5]" />
-            <span className="text-xs font-semibold text-[#011D4D]/60">{product.name}</span>
+            <span className="text-xs font-medium text-[#667085]">{product.name}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
       {/* Content Area */}
-      <div className="flex flex-col flex-grow p-4 md:p-5">
-        {/* Specs / Weight tag if exists */}
-        {product.weight && (
-          <span className="text-[11px] font-bold text-[#011D4D]/70 uppercase tracking-wider mb-1">
-            {product.weight}
-          </span>
-        )}
-
-        {/* Product Title - Bold, Readable Font */}
-        <h3 className="font-sans font-extrabold text-base md:text-lg text-[#011D4D] leading-tight mb-1.5 group-hover:text-[#01245F] transition-colors">
+      <div className="flex flex-col flex-grow p-4 sm:p-5">
+        {/* Title */}
+        <h3 className="font-sans font-semibold text-[16px] sm:text-[17px] text-[#101828] leading-snug mb-1.5 group-hover:text-[#06295C] transition-colors line-clamp-1">
           {product.name}
         </h3>
-        
-        {product.shortDescription && (
-          <p className="text-xs text-[#526070] line-clamp-2 mb-4 flex-grow leading-relaxed font-sans">
+
+        {/* Short Description */}
+        {product.shortDescription ? (
+          <p className="text-[13px] sm:text-[14px] text-[#667085] line-clamp-2 leading-relaxed mb-4 flex-grow font-normal">
             {product.shortDescription}
           </p>
+        ) : (
+          <div className="flex-grow mb-4" />
         )}
 
-        <div className="mt-auto pt-2 flex flex-col gap-3.5">
-          {/* Price */}
-          <div>
+        {/* Bottom Section: Price & Action */}
+        <div className="mt-auto pt-3 border-t border-[#F2F4F7] flex flex-col gap-3">
+          <div className="min-h-[42px] flex items-center justify-between">
             {getPriceDisplay()}
           </div>
 
-          {/* Action Button */}
-          <button 
+          <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onClick(product);
             }}
-            className="w-full h-11 bg-[#011D4D] group-hover:bg-[#01245F] active:bg-[#01163E] text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 border border-white/10"
+            className="w-full h-[42px] bg-[#FAF7F0] group-hover:bg-[#06295C] text-[#06295C] group-hover:text-white rounded-xl text-[13px] font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-[#E4E7EC] group-hover:border-[#06295C] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06295C]"
           >
             <span>{getButtonText()}</span>
-            <ChevronRight size={16} className="text-[#FBF59C] group-hover:translate-x-1 transition-transform" />
+            <ArrowRight
+              size={15}
+              className="text-[#06295C] group-hover:text-[#E9C84A] group-hover:translate-x-0.5 transition-all"
+            />
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 
@@ -8,36 +8,43 @@ export function CartBar() {
   const { items, getTotalItems, getSubtotal, openCart } = useCartStore();
   const totalItems = getTotalItems();
   const subtotal = getSubtotal();
+  const [mounted, setMounted] = useState(false);
 
-  if (items.length === 0) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render anything until after hydration to avoid SSR mismatch
+  if (!mounted || items.length === 0) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pb-safe bg-transparent pointer-events-none">
-      <div className="container mx-auto max-w-lg pointer-events-auto">
+      <div className="max-w-[480px] mx-auto pointer-events-auto">
         <button
           onClick={openCart}
-          className="w-full bg-[#011D4D] hover:bg-[#01245F] text-white rounded-t-[22px] rounded-b-[22px] p-4 shadow-[0_-6px_25px_rgba(1,29,77,0.20)] border border-[rgba(251,245,156,0.30)] flex items-center justify-between transition-all duration-200"
+          className="w-full bg-[#031C42] hover:bg-[#06295C] text-white rounded-full p-3.5 sm:p-4 shadow-[0_12px_36px_rgba(3,28,66,0.30)] border border-white/15 flex items-center justify-between transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E9C84A]"
+          aria-label="Ver carrinho e finalizar pedido"
         >
-          <div className="flex items-center gap-3">
-            <div className="relative bg-[#01245F] p-2.5 rounded-xl border border-white/20">
-              <ShoppingBag size={20} className="text-[#FBF59C]" />
-              <span className="absolute -top-1.5 -right-1.5 bg-[#FBF59C] text-[#011D4D] text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-xs">
+          <div className="flex items-center gap-3 pl-1">
+            <div className="relative bg-white/10 p-2.5 rounded-full border border-white/15">
+              <ShoppingBag size={18} className="text-[#E9C84A]" />
+              <span className="absolute -top-1 -right-1 bg-[#E9C84A] text-[#031C42] text-[10px] font-black h-4.5 min-w-[18px] px-1 rounded-full flex items-center justify-center shadow-2xs">
                 {totalItems}
               </span>
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-xs text-white/80 font-medium">
-                {totalItems} {totalItems === 1 ? 'item selecionado' : 'itens selecionados'}
+              <span className="text-[12px] text-white/70 font-medium leading-none">
+                {totalItems} {totalItems === 1 ? "item" : "itens"} no pedido
               </span>
-              <span className="text-lg font-bold text-[#FBF59C] font-heading leading-tight">
-                R$ {subtotal.toFixed(2).replace('.', ',')}
+              <span className="text-[17px] font-bold text-white leading-tight mt-0.5">
+                R$ {subtotal.toFixed(2).replace(".", ",")}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#FBF59C] text-[#011D4D] px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase shadow-xs">
+          <div className="flex items-center gap-1.5 bg-[#E9C84A] hover:bg-[#D4B236] text-[#031C42] px-4 py-2 rounded-full font-semibold text-[13px] tracking-wide shadow-2xs transition-colors">
             <span>Ver pedido</span>
-            <ArrowRight size={14} />
+            <ArrowRight size={15} />
           </div>
         </button>
       </div>

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { useCartStore } from "@/store/useCartStore";
+import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -16,58 +17,97 @@ interface CheckoutDrawerProps {
 export function CheckoutDrawer({ isOpen, onClose }: CheckoutDrawerProps) {
   const { items, getSubtotal, clearCart } = useCartStore();
   const subtotal = getSubtotal();
+  const router = useRouter();
 
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [type, setType] = useState("retirada");
+  const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleWhatsAppCheckout = () => {
-    const shortId = `JC-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    
-    const itemsText = items.map(item => {
-      let text = `• ${item.quantity}x ${item.product.name}\n`;
-      if (item.config) {
-        if (item.config.flavor) text += `  Sabor: ${item.config.flavor}\n`;
-        if (item.config.weight) text += `  Peso: ${item.config.weight}kg\n`;
-        if (item.config.shape) text += `  Formato: ${item.config.shape}\n`;
-        if (item.config.decoration) text += `  Decoração: ${item.config.decoration}\n`;
-        if (item.config.flavors) {
-          text += `  Sabores: ${item.config.flavors.map((f: any) => `${f.quantity}x ${f.name}`).join(', ')}\n`;
-        }
+  const handleCheckout = async () => {
+    setIsLoading(true);
+    try {
+      // Build items payload
+      const orderItems = items.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        configurations: item.config || null
+      }));
+
+      const payload = {
+        customer_name: name,
+        phone: whatsapp,
+        desired_date: date,
+        desired_time: time,
+        fulfillment_type: type,
+        address: type === 'entrega' ? address : null,
+        notes,
+        items: orderItems,
+        is_quote: requiresQuote,
+        utm_source: 'web',
+      };
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Falha ao salvar pedido no servidor');
       }
-      text += `  R$ ${item.totalPrice.toFixed(2).replace('.', ',')}\n`;
-      return text;
-    }).join('\n');
+      if (requiresQuote) {
+        const itemsText = items.map(item => {
+          let text = `• ${item.quantity}x ${item.product.name}\n`;
+          if (item.config) {
+            if (item.config.flavor) text += `  Sabor: ${item.config.flavor}\n`;
+            if (item.config.weight) text += `  Peso: ${item.config.weight}kg\n`;
+            if (item.config.shape) text += `  Formato: ${item.config.shape}\n`;
+            if (item.config.decoration) text += `  Decoração: ${item.config.decoration}\n`;
+          }
+          return text;
+        }).join('\n');
 
-    const message = `Olá! Montei meu pedido pelo cardápio da Jeny Confeitaria Gourmet 💙
+        const intentText = "Gostaria de solicitar um orçamento para o pedido abaixo.";
 
-Pedido: #${shortId}
+        const message = `Olá! Montei meu pedido pelo cardápio da Jeny Confeitaria Gourmet 💙\n\n${intentText}\n\nPedido: #${data.publicId}\n\nItens:\n${itemsText}\nTipo de Recebimento: ${type === 'retirada' ? 'Retirada na loja' : 'Entrega'}\n${type === 'entrega' ? `Endereço: ${address}\n` : ''}Data desejada: ${date}\nHorário: ${time}\n\nNome: ${name}\nWhatsApp: ${whatsapp}\n${notes ? `\nObservações: ${notes}\n` : ''}\nLink para acompanhamento: ${data.shareUrl}\n\nTotal estimado: R$ ${subtotal.toFixed(2).replace('.', ',')}`;
 
-Itens:
-${itemsText}
-Tipo de Recebimento: ${type === 'retirada' ? 'Retirada na loja' : 'Entrega'}
-Data desejada: ${date}
-Horário: ${time}
-
-Nome: ${name}
-WhatsApp: ${whatsapp}
-${notes ? `\nObservações: ${notes}\n` : ''}
-Total estimado: R$ ${subtotal.toFixed(2).replace('.', ',')}
-
-Gostaria de confirmar a disponibilidade e o valor final.`;
-
-    const encodedMessage = encodeURIComponent(message);
-    const phoneNumber = "5511966026794";
-    const url = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-    
-    window.open(url, "_blank");
-    onClose();
+        const encodedMessage = encodeURIComponent(message);
+        const phoneNumber = "5511966026794";
+        const url = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+        
+        window.open(url, "_blank");
+      } else {
+        // If it's a direct purchase, go to tracking page (which will have the Asaas payment link)
+        router.push(`/pedido/${data.publicId}`);
+      }
+      
+      clearCart();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert("Ocorreu um erro ao gerar o pedido. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const isFormValid = name.trim().length >= 2 && whatsapp.trim().length >= 8 && date && time;
+  // Check if any item requires a custom quote
+  const requiresQuote = items.some(item => 
+    item.product.id === 'p1_custom' || 
+    item.config?.decoration === 'Personalizada' ||
+    item.product.priceType === 'quote'
+  );
+
+  // Data mínima é hoje
+  const today = new Date().toISOString().split('T')[0];
+  const isFormValid = name.trim().length >= 2 && whatsapp.trim().length >= 8 && (type === "retirada" || address.trim().length >= 5);
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -78,7 +118,7 @@ Gostaria de confirmar a disponibilidade e o valor final.`;
             Só falta combinar os detalhes
           </SheetTitle>
           <SheetDescription className="text-white/80 text-xs">
-            Preencha seus dados para enviar o pedido direto para o nosso WhatsApp.
+            Preencha seus dados para finalizar o pedido. A data e horário podem ser combinados depois.
           </SheetDescription>
         </SheetHeader>
 
@@ -115,19 +155,20 @@ Gostaria de confirmar a disponibilidade e o valor final.`;
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="date" className="text-xs font-semibold text-[#011D4D] mb-1.5 block">
-                  Data desejada *
+                  Data desejada (Opcional)
                 </Label>
                 <Input 
                   id="date" 
                   value={date} 
                   onChange={(e) => setDate(e.target.value)} 
                   type="date"
+                  min={today}
                   className="h-11 border-[rgba(1,29,77,0.16)] focus:border-[#011D4D] rounded-xl text-xs"
                 />
               </div>
               <div>
                 <Label htmlFor="time" className="text-xs font-semibold text-[#011D4D] mb-1.5 block">
-                  Horário *
+                  Horário (Opcional)
                 </Label>
                 <Input 
                   id="time" 
@@ -159,6 +200,21 @@ Gostaria de confirmar a disponibilidade e o valor final.`;
               </RadioGroup>
             </div>
 
+            {type === "entrega" && (
+              <div>
+                <Label htmlFor="address" className="text-xs font-semibold text-[#011D4D] mb-1.5 block">
+                  Endereço de Entrega *
+                </Label>
+                <Input 
+                  id="address" 
+                  value={address} 
+                  onChange={(e) => setAddress(e.target.value)} 
+                  placeholder="Rua, Número, Bairro, Ponto de Ref." 
+                  className="h-11 border-[rgba(1,29,77,0.16)] focus:border-[#011D4D] rounded-xl text-sm"
+                />
+              </div>
+            )}
+
             <div>
               <Label htmlFor="notes" className="text-xs font-semibold text-[#011D4D] mb-1.5 block">
                 Observações do pedido (Opcional)
@@ -183,13 +239,30 @@ Gostaria de confirmar a disponibilidade e o valor final.`;
             </span>
           </div>
 
+          {requiresQuote && (
+            <p className="text-xs text-[#EAB308] font-medium mb-3 bg-[#FEF9C3] p-2 rounded-md">
+              Seu pedido contém itens personalizados. O valor é estimado e será confirmado no atendimento.
+            </p>
+          )}
+
           <button 
-            onClick={handleWhatsAppCheckout}
-            disabled={!isFormValid}
+            onClick={handleCheckout}
+            disabled={!isFormValid || isLoading}
             className="w-full bg-[#011D4D] hover:bg-[#01245F] active:bg-[#01163E] disabled:opacity-40 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2"
           >
-            <MessageCircle size={20} className="text-[#25D366]" />
-            <span>Finalizar pelo WhatsApp</span>
+            {isLoading ? (
+              <span>Processando...</span>
+            ) : requiresQuote ? (
+              <>
+                <MessageCircle size={20} className="text-[#25D366]" />
+                <span>Solicitar Orçamento no WhatsApp</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={20} className="text-[#25D366]" />
+                <span>Confirmar Pedido</span>
+              </>
+            )}
           </button>
         </SheetFooter>
 
